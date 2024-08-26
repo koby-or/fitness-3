@@ -60,120 +60,123 @@
     </div>
 
     <script>
-        let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
-        let selectedExercise = null;
-        const exerciseList = document.getElementById('exerciseList');
-        const weightSlider = document.getElementById('weightSlider');
-        const currentWeightSpan = document.getElementById('currentWeight');
-        const targetWeightSpan = document.getElementById('targetWeight');
-        const weightLossGoalSpan = document.getElementById('weightLossGoal');
-        const addExerciseForm = document.getElementById('addExerciseForm');
-        const progressChartDiv = document.getElementById('progressChart');
-        const updateProgressForm = document.getElementById('updateProgressForm');
-        let chart = null;
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', function() {
+            let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
+            let selectedExercise = null;
+            const exerciseList = document.getElementById('exerciseList');
+            const weightSlider = document.getElementById('weightSlider');
+            const currentWeightSpan = document.getElementById('currentWeight');
+            const targetWeightSpan = document.getElementById('targetWeight');
+            const weightLossGoalSpan = document.getElementById('weightLossGoal');
+            const addExerciseForm = document.getElementById('addExerciseForm');
+            const progressChartDiv = document.getElementById('progressChart');
+            const updateProgressForm = document.getElementById('updateProgressForm');
+            let chart = null;
 
-        function updateWeightDisplay() {
-            const currentWeight = weightSlider.value;
-            const targetWeight = 62;
-            currentWeightSpan.textContent = currentWeight;
-            targetWeightSpan.textContent = targetWeight;
-            weightLossGoalSpan.textContent = currentWeight - targetWeight;
-        }
-
-        weightSlider.addEventListener('input', updateWeightDisplay);
-        updateWeightDisplay();
-
-        function saveExercises() {
-            localStorage.setItem('exercises', JSON.stringify(exercises));
-        }
-
-        function addExercise(name, category) {
-            const newExercise = {
-                id: Date.now(),
-                name,
-                category,
-                personalBest: 0,
-                progress: []
-            };
-            exercises.push(newExercise);
-            saveExercises();
-            renderExerciseList();
-        }
-
-        function renderExerciseList() {
-            exerciseList.innerHTML = '';
-            exercises.forEach(exercise => {
-                const exerciseCard = document.createElement('div');
-                exerciseCard.className = 'border p-4 rounded-lg cursor-pointer hover:bg-gray-50';
-                exerciseCard.innerHTML = `
-                    <h3 class="text-lg font-semibold">${exercise.name}</h3>
-                    <p class="text-gray-600">${exercise.category}</p>
-                    <p class="mt-2">שיא אישי: ${exercise.personalBest}</p>
-                `;
-                exerciseCard.addEventListener('click', () => selectExercise(exercise));
-                exerciseList.appendChild(exerciseCard);
-            });
-        }
-
-        function selectExercise(exercise) {
-            selectedExercise = exercise;
-            progressChartDiv.classList.remove('hidden');
-            renderProgressChart();
-        }
-
-        function renderProgressChart() {
-            const ctx = document.getElementById('exerciseChart').getContext('2d');
-            if (chart) {
-                chart.destroy();
+            function updateWeightDisplay() {
+                const currentWeight = weightSlider.value;
+                const targetWeight = 62;
+                currentWeightSpan.textContent = currentWeight;
+                targetWeightSpan.textContent = targetWeight;
+                weightLossGoalSpan.textContent = currentWeight - targetWeight;
             }
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: selectedExercise.progress.map((_, index) => `אימון ${index + 1}`),
-                    datasets: [{
-                        label: 'התקדמות',
-                        data: selectedExercise.progress,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
 
-        function updateProgress(newValue) {
-            if (selectedExercise) {
-                selectedExercise.progress.push(Number(newValue));
-                selectedExercise.personalBest = Math.max(selectedExercise.personalBest, Number(newValue));
+            weightSlider.addEventListener('input', updateWeightDisplay);
+            updateWeightDisplay();
+
+            function saveExercises() {
+                localStorage.setItem('exercises', JSON.stringify(exercises));
+            }
+
+            function addExercise(name, category) {
+                const newExercise = {
+                    id: Date.now(),
+                    name,
+                    category,
+                    personalBest: 0,
+                    progress: []
+                };
+                exercises.push(newExercise);
                 saveExercises();
                 renderExerciseList();
+            }
+
+            function renderExerciseList() {
+                exerciseList.innerHTML = '';
+                exercises.forEach(exercise => {
+                    const exerciseCard = document.createElement('div');
+                    exerciseCard.className = 'border p-4 rounded-lg cursor-pointer hover:bg-gray-50';
+                    exerciseCard.innerHTML = `
+                        <h3 class="text-lg font-semibold">${exercise.name}</h3>
+                        <p class="text-gray-600">${exercise.category}</p>
+                        <p class="mt-2">שיא אישי: ${exercise.personalBest}</p>
+                    `;
+                    exerciseCard.addEventListener('click', () => selectExercise(exercise));
+                    exerciseList.appendChild(exerciseCard);
+                });
+            }
+
+            function selectExercise(exercise) {
+                selectedExercise = exercise;
+                progressChartDiv.classList.remove('hidden');
                 renderProgressChart();
             }
-        }
 
-        addExerciseForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('exerciseName').value;
-            const category = document.getElementById('exerciseCategory').value;
-            addExercise(name, category);
-            addExerciseForm.reset();
+            function renderProgressChart() {
+                const ctx = document.getElementById('exerciseChart').getContext('2d');
+                if (chart) {
+                    chart.destroy();
+                }
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: selectedExercise.progress.map((_, index) => `אימון ${index + 1}`),
+                        datasets: [{
+                            label: 'התקדמות',
+                            data: selectedExercise.progress,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateProgress(newValue) {
+                if (selectedExercise) {
+                    selectedExercise.progress.push(Number(newValue));
+                    selectedExercise.personalBest = Math.max(selectedExercise.personalBest, Number(newValue));
+                    saveExercises();
+                    renderExerciseList();
+                    renderProgressChart();
+                }
+            }
+
+            addExerciseForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('exerciseName').value;
+                const category = document.getElementById('exerciseCategory').value;
+                addExercise(name, category);
+                addExerciseForm.reset();
+            });
+
+            updateProgressForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newValue = document.getElementById('newProgress').value;
+                updateProgress(newValue);
+                updateProgressForm.reset();
+            });
+
+            renderExerciseList();
         });
-
-        updateProgressForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newValue = document.getElementById('newProgress').value;
-            updateProgress(newValue);
-            updateProgressForm.reset();
-        });
-
-        renderExerciseList();
     </script>
 </body>
 </html>
