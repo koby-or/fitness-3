@@ -115,13 +115,38 @@
                 progress: { currentWeight: null, workoutDuration: null, history: [] },
                 chart: null,
 
+                init() {
+                    const savedData = localStorage.getItem('fitnessAppData');
+                    if (savedData) {
+                        const parsedData = JSON.parse(savedData);
+                        this.currentStep = parsedData.currentStep || 'registration';
+                        this.user = parsedData.user || { name: '', age: null, weight: null, height: null };
+                        this.answers = parsedData.answers || [];
+                        this.workoutPlan = parsedData.workoutPlan || { aerobic: [], strength: [] };
+                        this.progress = parsedData.progress || { currentWeight: null, workoutDuration: null, history: [] };
+                    }
+                },
+
+                saveData() {
+                    const dataToSave = {
+                        currentStep: this.currentStep,
+                        user: this.user,
+                        answers: this.answers,
+                        workoutPlan: this.workoutPlan,
+                        progress: this.progress
+                    };
+                    localStorage.setItem('fitnessAppData', JSON.stringify(dataToSave));
+                },
+
                 submitRegistration() {
                     this.currentStep = 'questionnaire';
+                    this.saveData();
                 },
 
                 submitQuestionnaire() {
                     this.generateWorkoutPlan();
                     this.currentStep = 'workoutPlan';
+                    this.saveData();
                 },
 
                 generateWorkoutPlan() {
@@ -135,16 +160,18 @@
                 startTracking() {
                     this.progress.currentWeight = this.user.weight;
                     this.currentStep = 'progressTracking';
-                    this.initChart();
+                    this.saveData();
+                    this.$nextTick(() => this.initChart());
                 },
 
                 updateProgress() {
                     if (this.progress.currentWeight && this.progress.workoutDuration) {
                         this.progress.history.push({
                             date: new Date().toLocaleDateString('he-IL'),
-                            weight: this.progress.currentWeight,
-                            duration: this.progress.workoutDuration
+                            weight: parseFloat(this.progress.currentWeight),
+                            duration: parseInt(this.progress.workoutDuration)
                         });
+                        this.saveData();
                         this.updateChart();
                     }
                 },
@@ -174,18 +201,22 @@
                             }
                         }
                     });
+                    this.updateChart();
                 },
 
                 updateChart() {
-                    this.chart.data.labels = this.progress.history.map(entry => entry.date);
-                    this.chart.data.datasets[0].data = this.progress.history.map(entry => entry.weight);
-                    this.chart.data.datasets[1].data = this.progress.history.map(entry => entry.duration);
-                    this.chart.update();
+                    if (this.chart) {
+                        this.chart.data.labels = this.progress.history.map(entry => entry.date);
+                        this.chart.data.datasets[0].data = this.progress.history.map(entry => entry.weight);
+                        this.chart.data.datasets[1].data = this.progress.history.map(entry => entry.duration);
+                        this.chart.update();
+                    }
                 },
 
                 finishWorkout() {
                     alert('כל הכבוד! סיימת את האימון שלך.');
                     this.progress.workoutDuration = null;
+                    this.saveData();
                 }
             }
         }
