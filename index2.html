@@ -1,191 +1,179 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertCircle, TrendingUp, Dumbbell, Zap } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Dummy data - replace with real data in a production app
-const initialExercises = [
-  { id: 1, name: 'Squats', category: 'Legs', personalBest: 100, weightProgression: [80, 85, 90, 95, 100] },
-  { id: 2, name: 'Bench Press', category: 'Chest', personalBest: 80, weightProgression: [60, 65, 70, 75, 80] },
-  { id: 3, name: 'Deadlift', category: 'Back', personalBest: 120, weightProgression: [100, 105, 110, 115, 120] },
-  { id: 4, name: 'Running', category: 'Cardio', personalBest: 10, weightProgression: [5, 6, 7, 8, 10] },
-];
-
-const categories = ['Legs', 'Chest', 'Back', 'Cardio'];
-
-const Dashboard = () => {
-  const [exercises, setExercises] = useState(initialExercises);
-  const [selectedExercise, setSelectedExercise] = useState(null);
-  const [weight, setWeight] = useState(74);
-  const [goalWeight, setGoalWeight] = useState(62);
-
-  useEffect(() => {
-    // Load exercises from localStorage on component mount
-    const savedExercises = localStorage.getItem('exercises');
-    if (savedExercises) {
-      setExercises(JSON.parse(savedExercises));
-    }
-  }, []);
-
-  useEffect(() => {
-    // Save exercises to localStorage whenever they change
-    localStorage.setItem('exercises', JSON.stringify(exercises));
-  }, [exercises]);
-
-  const addExercise = (name, category) => {
-    const newExercise = {
-      id: exercises.length + 1,
-      name,
-      category,
-      personalBest: 0,
-      weightProgression: [],
-    };
-    setExercises([...exercises, newExercise]);
-  };
-
-  const updateExercise = (id, newWeight) => {
-    setExercises(exercises.map(exercise => {
-      if (exercise.id === id) {
-        const updatedWeightProgression = [...exercise.weightProgression, newWeight];
-        const newPersonalBest = Math.max(exercise.personalBest, newWeight);
-        return {
-          ...exercise,
-          weightProgression: updatedWeightProgression,
-          personalBest: newPersonalBest,
-        };
-      }
-      return exercise;
-    }));
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 p-8">
-      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Fitness Tracker</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-purple-600">Weight Progress</h2>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-lg">Current Weight: {weight} kg</span>
-            <span className="text-lg">Goal Weight: {goalWeight} kg</span>
-          </div>
-          <input
-            type="range"
-            min="50"
-            max="100"
-            value={weight}
-            onChange={(e) => setWeight(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <Alert className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Weight Loss Goal</AlertTitle>
-            <AlertDescription>
-              You're aiming to lose {weight - goalWeight} kg in 30 days. Stay motivated!
-            </AlertDescription>
-          </Alert>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-purple-600">Add New Exercise</h2>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const name = e.target.exerciseName.value;
-            const category = e.target.category.value;
-            addExercise(name, category);
-            e.target.reset();
-          }}>
-            <input
-              type="text"
-              name="exerciseName"
-              placeholder="Exercise Name"
-              className="w-full p-2 mb-4 border rounded"
-              required
-            />
-            <select
-              name="category"
-              className="w-full p-2 mb-4 border rounded"
-              required
-            >
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors"
-            >
-              Add Exercise
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4 text-purple-600">Exercise List</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {exercises.map(exercise => (
-            <div
-              key={exercise.id}
-              className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => setSelectedExercise(exercise)}
-            >
-              <h3 className="text-lg font-semibold">{exercise.name}</h3>
-              <p className="text-gray-600">{exercise.category}</p>
-              <p className="mt-2">
-                <TrendingUp className="inline-block mr-2 text-green-500" />
-                Personal Best: {exercise.personalBest}
-              </p>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מעקב כושר</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-blue-600">מעקב כושר</h1>
+        
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-purple-600">מעקב משקל</h2>
+            <div class="flex justify-between mb-2">
+                <span>משקל נוכחי: <span id="currentWeight">74</span> ק"ג</span>
+                <span>משקל יעד: <span id="targetWeight">62</span> ק"ג</span>
             </div>
-          ))}
+            <input type="range" id="weightSlider" min="50" max="100" value="74" class="w-full">
+            <div class="mt-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                <p class="font-bold">יעד ירידה במשקל</p>
+                <p>אתה שואף לרדת <span id="weightLossGoal">12</span> ק"ג תוך 30 יום. המשך כך!</p>
+            </div>
         </div>
-      </div>
 
-      {selectedExercise && (
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-purple-600">{selectedExercise.name} Progress</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={selectedExercise.weightProgression.map((weight, index) => ({ session: index + 1, weight }))}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="session" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="weight" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const newWeight = Number(e.target.weight.value);
-            updateExercise(selectedExercise.id, newWeight);
-            e.target.reset();
-          }} className="mt-4">
-            <input
-              type="number"
-              name="weight"
-              placeholder="New Weight/Time"
-              className="w-full p-2 mb-4 border rounded"
-              required
-            />
-            <button
-              type="submit"
-              className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-colors"
-            >
-              Update Progress
-            </button>
-          </form>
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-purple-600">הוסף תרגיל חדש</h2>
+            <form id="addExerciseForm" class="space-y-4">
+                <input type="text" id="exerciseName" placeholder="שם התרגיל" class="w-full p-2 border rounded" required>
+                <select id="exerciseCategory" class="w-full p-2 border rounded" required>
+                    <option value="">בחר קטגוריה</option>
+                    <option value="רגליים">רגליים</option>
+                    <option value="חזה">חזה</option>
+                    <option value="גב">גב</option>
+                    <option value="אירובי">אירובי</option>
+                </select>
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">הוסף תרגיל</button>
+            </form>
         </div>
-      )}
 
-      <footer className="mt-8 text-center text-gray-600">
-        <p>Created with ❤️ for your fitness journey</p>
-        <div className="flex justify-center mt-2">
-          <Dumbbell className="mx-2 text-blue-500" />
-          <Zap className="mx-2 text-yellow-500" />
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-purple-600">רשימת תרגילים</h2>
+            <div id="exerciseList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
-      </footer>
+
+        <div class="mb-8 hidden" id="progressChart">
+            <h2 class="text-2xl font-semibold mb-4 text-purple-600">גרף התקדמות</h2>
+            <canvas id="exerciseChart"></canvas>
+            <form id="updateProgressForm" class="mt-4">
+                <input type="number" id="newProgress" placeholder="משקל/זמן חדש" class="w-full p-2 border rounded mb-2" required>
+                <button type="submit" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">עדכן התקדמות</button>
+            </form>
+        </div>
     </div>
-  );
-};
 
-export default Dashboard;
+    <script>
+        let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
+        let selectedExercise = null;
+        const exerciseList = document.getElementById('exerciseList');
+        const weightSlider = document.getElementById('weightSlider');
+        const currentWeightSpan = document.getElementById('currentWeight');
+        const targetWeightSpan = document.getElementById('targetWeight');
+        const weightLossGoalSpan = document.getElementById('weightLossGoal');
+        const addExerciseForm = document.getElementById('addExerciseForm');
+        const progressChartDiv = document.getElementById('progressChart');
+        const updateProgressForm = document.getElementById('updateProgressForm');
+        let chart = null;
+
+        function updateWeightDisplay() {
+            const currentWeight = weightSlider.value;
+            const targetWeight = 62;
+            currentWeightSpan.textContent = currentWeight;
+            targetWeightSpan.textContent = targetWeight;
+            weightLossGoalSpan.textContent = currentWeight - targetWeight;
+        }
+
+        weightSlider.addEventListener('input', updateWeightDisplay);
+        updateWeightDisplay();
+
+        function saveExercises() {
+            localStorage.setItem('exercises', JSON.stringify(exercises));
+        }
+
+        function addExercise(name, category) {
+            const newExercise = {
+                id: Date.now(),
+                name,
+                category,
+                personalBest: 0,
+                progress: []
+            };
+            exercises.push(newExercise);
+            saveExercises();
+            renderExerciseList();
+        }
+
+        function renderExerciseList() {
+            exerciseList.innerHTML = '';
+            exercises.forEach(exercise => {
+                const exerciseCard = document.createElement('div');
+                exerciseCard.className = 'border p-4 rounded-lg cursor-pointer hover:bg-gray-50';
+                exerciseCard.innerHTML = `
+                    <h3 class="text-lg font-semibold">${exercise.name}</h3>
+                    <p class="text-gray-600">${exercise.category}</p>
+                    <p class="mt-2">שיא אישי: ${exercise.personalBest}</p>
+                `;
+                exerciseCard.addEventListener('click', () => selectExercise(exercise));
+                exerciseList.appendChild(exerciseCard);
+            });
+        }
+
+        function selectExercise(exercise) {
+            selectedExercise = exercise;
+            progressChartDiv.classList.remove('hidden');
+            renderProgressChart();
+        }
+
+        function renderProgressChart() {
+            const ctx = document.getElementById('exerciseChart').getContext('2d');
+            if (chart) {
+                chart.destroy();
+            }
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: selectedExercise.progress.map((_, index) => `אימון ${index + 1}`),
+                    datasets: [{
+                        label: 'התקדמות',
+                        data: selectedExercise.progress,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProgress(newValue) {
+            if (selectedExercise) {
+                selectedExercise.progress.push(Number(newValue));
+                selectedExercise.personalBest = Math.max(selectedExercise.personalBest, Number(newValue));
+                saveExercises();
+                renderExerciseList();
+                renderProgressChart();
+            }
+        }
+
+        addExerciseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('exerciseName').value;
+            const category = document.getElementById('exerciseCategory').value;
+            addExercise(name, category);
+            addExerciseForm.reset();
+        });
+
+        updateProgressForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newValue = document.getElementById('newProgress').value;
+            updateProgress(newValue);
+            updateProgressForm.reset();
+        });
+
+        renderExerciseList();
+    </script>
+</body>
+</html>
