@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תוכנית אימונים מקצועית</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div x-data="app()" x-cloak class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-8">תוכנית אימונים מקצועית</h1>
+        
+        <!-- שלב הרשמה -->
+        <div x-show="currentStep === 'registration'" class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">הרשמה</h2>
+            <form @submit.prevent="submitRegistration">
+                <div class="mb-4">
+                    <label for="name" class="block mb-2">שם:</label>
+                    <input type="text" id="name" x-model="user.name" required class="w-full p-2 border rounded">
+                </div>
+                <div class="mb-4">
+                    <label for="age" class="block mb-2">גיל:</label>
+                    <input type="number" id="age" x-model="user.age" required class="w-full p-2 border rounded">
+                </div>
+                <div class="mb-4">
+                    <label for="weight" class="block mb-2">משקל (ק"ג):</label>
+                    <input type="number" id="weight" x-model="user.weight" required class="w-full p-2 border rounded">
+                </div>
+                <div class="mb-4">
+                    <label for="height" class="block mb-2">גובה (ס"מ):</label>
+                    <input type="number" id="height" x-model="user.height" required class="w-full p-2 border rounded">
+                </div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">המשך</button>
+            </form>
+        </div>
+
+        <!-- שאלון -->
+        <div x-show="currentStep === 'questionnaire'" class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">שאלון התאמה אישית</h2>
+            <template x-for="(question, index) in questions" :key="index">
+                <div class="mb-6">
+                    <p class="font-semibold mb-2" x-text="question.text"></p>
+                    <div class="space-y-2">
+                        <template x-for="(option, optionIndex) in question.options" :key="optionIndex">
+                            <label class="flex items-center">
+                                <input type="radio" :name="'question_' + index" :value="option" x-model="answers[index]" class="mr-2">
+                                <span x-text="option"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <button @click="submitQuestionnaire" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">סיים שאלון</button>
+        </div>
+
+        <!-- תוכנית אימונים -->
+        <div x-show="currentStep === 'workoutPlan'" class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">תוכנית האימונים שלך</h2>
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2">אימון אירובי</h3>
+                <ul class="list-disc list-inside">
+                    <template x-for="exercise in workoutPlan.aerobic" :key="exercise">
+                        <li x-text="exercise"></li>
+                    </template>
+                </ul>
+            </div>
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2">אימון כוח</h3>
+                <ul class="list-disc list-inside">
+                    <template x-for="exercise in workoutPlan.strength" :key="exercise">
+                        <li x-text="exercise"></li>
+                    </template>
+                </ul>
+            </div>
+            <button @click="startTracking" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">התחל מעקב</button>
+        </div>
+
+        <!-- מעקב התקדמות -->
+        <div x-show="currentStep === 'progressTracking'" class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">מעקב התקדמות</h2>
+            <div class="mb-6">
+                <label for="currentWeight" class="block mb-2">משקל נוכחי (ק"ג):</label>
+                <input type="number" id="currentWeight" x-model="progress.currentWeight" @input="updateProgress" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-6">
+                <label for="workoutDuration" class="block mb-2">משך האימון (דקות):</label>
+                <input type="number" id="workoutDuration" x-model="progress.workoutDuration" @input="updateProgress" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-6">
+                <canvas id="progressChart"></canvas>
+            </div>
+            <button @click="finishWorkout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">סיים אימון</button>
+        </div>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                currentStep: 'registration',
+                user: { name: '', age: null, weight: null, height: null },
+                questions: [
+                    { text: 'מה רמת הכושר הנוכחית שלך?', options: ['מתחיל', 'בינוני', 'מתקדם'] },
+                    { text: 'כמה פעמים בשבוע אתה מתכנן להתאמן?', options: ['1-2', '3-4', '5+'] },
+                    { text: 'מה המטרה העיקרית שלך?', options: ['ירידה במשקל', 'בניית שריר', 'שיפור סיבולת'] },
+                    { text: 'האם יש לך מגבלות בריאותיות?', options: ['כן', 'לא'] },
+                    { text: 'האם יש לך ציוד אימון בבית?', options: ['כן', 'לא'] }
+                ],
+                answers: [],
+                workoutPlan: { aerobic: [], strength: [] },
+                progress: { currentWeight: null, workoutDuration: null, history: [] },
+                chart: null,
+
+                submitRegistration() {
+                    this.currentStep = 'questionnaire';
+                },
+
+                submitQuestionnaire() {
+                    this.generateWorkoutPlan();
+                    this.currentStep = 'workoutPlan';
+                },
+
+                generateWorkoutPlan() {
+                    // תוכנית אימונים בסיסית - יש להרחיב בהתאם לתשובות השאלון
+                    this.workoutPlan = {
+                        aerobic: ['הליכה מהירה - 30 דקות', 'ריצה קלה - 20 דקות', 'אופניים - 25 דקות'],
+                        strength: ['שכיבות שמיכה - 3x10', 'סקוואטים - 3x12', 'מתח - 3x8', 'פלאנק - 3x30 שניות']
+                    };
+                },
+
+                startTracking() {
+                    this.progress.currentWeight = this.user.weight;
+                    this.currentStep = 'progressTracking';
+                    this.initChart();
+                },
+
+                updateProgress() {
+                    if (this.progress.currentWeight && this.progress.workoutDuration) {
+                        this.progress.history.push({
+                            date: new Date().toLocaleDateString('he-IL'),
+                            weight: this.progress.currentWeight,
+                            duration: this.progress.workoutDuration
+                        });
+                        this.updateChart();
+                    }
+                },
+
+                initChart() {
+                    const ctx = document.getElementById('progressChart').getContext('2d');
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: 'משקל (ק"ג)',
+                                data: [],
+                                borderColor: 'rgb(75, 192, 192)',
+                                tension: 0.1
+                            }, {
+                                label: 'משך אימון (דקות)',
+                                data: [],
+                                borderColor: 'rgb(255, 99, 132)',
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { beginAtZero: false }
+                            }
+                        }
+                    });
+                },
+
+                updateChart() {
+                    this.chart.data.labels = this.progress.history.map(entry => entry.date);
+                    this.chart.data.datasets[0].data = this.progress.history.map(entry => entry.weight);
+                    this.chart.data.datasets[1].data = this.progress.history.map(entry => entry.duration);
+                    this.chart.update();
+                },
+
+                finishWorkout() {
+                    alert('כל הכבוד! סיימת את האימון שלך.');
+                    this.progress.workoutDuration = null;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
